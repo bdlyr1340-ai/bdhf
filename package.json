@@ -1,0 +1,26 @@
+{
+  "name": "telegram-store-bot",
+  "version": "1.0.0",
+  "description": "Telegram store bot with forced subscription, captcha, wallet, referrals, products and code stock",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "db:push": "prisma db push"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.6.0"
+  }
+}
