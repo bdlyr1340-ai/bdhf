@@ -1,0 +1,19 @@
+{
+  "name": "telegram-bot-railway",
+  "version": "1.0.0",
+  "description": "Telegram bot in JavaScript ready for Railway deployment",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "telegraf": "^4.16.3"
+  }
+}
