@@ -17,19 +17,19 @@ const app = express();
 app.use(express.json());
 
 function isTikTokUrl(text = "") {
-  return /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)\/\S+/i.test(text);
+  return /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)\/\S+/i.test(
+    text
+  );
 }
 
 function pickBestVideoUrl(data) {
   const candidates = [
     data?.result?.video?.downloadAddr,
     data?.result?.video?.playAddr,
-    data?.result?.video?.cover,
     data?.result?.video1,
     data?.result?.video2,
     data?.result?.video_hd,
     data?.result?.video_watermark,
-    data?.result?.music,
   ].filter(Boolean);
 
   return candidates[0] || null;
@@ -39,20 +39,18 @@ function pickCaption(data) {
   const title =
     data?.result?.desc ||
     data?.result?.title ||
-    data?.result?.author?.nickname ||
-    "TikTok media";
+    "TikTok Video";
 
   const author =
     data?.result?.author?.nickname ||
     data?.result?.author?.unique_id ||
-    data?.result?.author?.username ||
     "";
 
-  return author ? `🎵 ${title}\n👤 ${author}` : `🎵 ${title}`;
+  return author ? `🎬 ${title}\n👤 ${author}` : `🎬 ${title}`;
 }
 
 async function sendTikTok(ctx, inputUrl) {
-  const waiting = await ctx.reply("جاري جلب المقطع من تيك توك... ⏳");
+  const waiting = await ctx.reply("جاري تحميل الفيديو... ⏳");
 
   try {
     const data = await Tiktok.Downloader(inputUrl, {
@@ -67,40 +65,42 @@ async function sendTikTok(ctx, inputUrl) {
         ctx.chat.id,
         waiting.message_id,
         undefined,
-        "ما قدرت أطلع رابط التحميل من هذا الرابط."
+        "ما كدرت أستخرج رابط الفيديو من هذا الرابط."
       );
       return;
     }
 
-    const caption = pickCaption(data);
-
     await ctx.replyWithVideo(
       { url: mediaUrl },
       {
-        caption,
+        caption: pickCaption(data),
         supports_streaming: true,
       }
     );
 
-    await ctx.telegram.deleteMessage(ctx.chat.id, waiting.message_id).catch(() => {});
+    await ctx.telegram
+      .deleteMessage(ctx.chat.id, waiting.message_id)
+      .catch(() => {});
   } catch (error) {
     console.error("TikTok download failed:", error);
-    await ctx.telegram.editMessageText(
-      ctx.chat.id,
-      waiting.message_id,
-      undefined,
-      "صار خطأ أثناء تحميل الرابط. تأكد أن الرابط صحيح وجرب مرة ثانية."
-    ).catch(async () => {
-      await ctx.reply("صار خطأ أثناء تحميل الرابط. تأكد أن الرابط صحيح وجرب مرة ثانية.");
-    });
+
+    await ctx.telegram
+      .editMessageText(
+        ctx.chat.id,
+        waiting.message_id,
+        undefined,
+        "صار خطأ أثناء التحميل. تأكد من الرابط وجرب مرة ثانية."
+      )
+      .catch(async () => {
+        await ctx.reply("صار خطأ أثناء التحميل. تأكد من الرابط وجرب مرة ثانية.");
+      });
   }
 }
 
-// ===== أوامر البوت =====
 bot.start((ctx) => {
   return ctx.reply(
-    "هلا 👋\n" +
-      "أرسل رابط تيك توك وأنا أحاول أحمّل لك الفيديو مباشرة.\n\n" +
+    "هلا 👋\n\n" +
+      "أرسل رابط TikTok وأنا أرسل لك الفيديو مباشرة.\n\n" +
       "الأوامر:\n" +
       "/start - تشغيل البوت\n" +
       "/help - شرح الاستخدام"
@@ -111,31 +111,25 @@ bot.help((ctx) => {
   return ctx.reply(
     "طريقة الاستخدام:\n" +
       "1) انسخ رابط فيديو تيك توك\n" +
-      "2) أرسله للبوت\n" +
-      "3) البوت يرسل لك المقطع مباشرة\n\n" +
-      "الروابط المدعومة:\n" +
-      "- tiktok.com\n" +
-      "- vt.tiktok.com\n" +
-      "- vm.tiktok.com"
+      "2) أرسله إلى البوت\n" +
+      "3) البوت يرسل لك الفيديو مباشرة"
   );
 });
 
-// ===== استقبال الرسائل =====
 bot.on("text", async (ctx) => {
   const text = ctx.message.text?.trim();
 
   if (!text) {
-    return ctx.reply("أرسل رابط تيك توك صحيح.");
+    return ctx.reply("أرسل رابط TikTok صحيح.");
   }
 
   if (!isTikTokUrl(text)) {
-    return ctx.reply("أرسل رابط تيك توك صحيح حتى أقدر أحمل المقطع.");
+    return ctx.reply("أرسل رابط TikTok صحيح حتى أقدر أحمل الفيديو.");
   }
 
   await sendTikTok(ctx, text);
 });
 
-// ===== سيرفر الصحة لـ Railway =====
 app.get("/", (_req, res) => {
   res.status(200).json({
     ok: true,
@@ -148,7 +142,6 @@ app.get("/health", (_req, res) => {
   res.status(200).send("OK");
 });
 
-// ===== التشغيل =====
 const PORT = Number(process.env.PORT || 3000);
 
 async function startApp() {
