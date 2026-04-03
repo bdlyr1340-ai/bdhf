@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int                 @id @default(autoincrement())
+  telegramId      BigInt              @unique
+  fullName        String?
+  username        String?
+  balanceUsd      Decimal             @default(0) @db.Decimal(12, 2)
+  points          Int                 @default(0)
+  isSubscribed    Boolean             @default(false)
+  isVerified      Boolean             @default(false)
+  isBlocked       Boolean             @default(false)
+  referredById    Int?
+  referralsCount  Int                 @default(0)
+  referralRewarded Boolean            @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  referredBy      User?               @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals       User[]              @relation("UserReferrals")
+  orders          Order[]
+  walletTransactions WalletTransaction[]
+  soldCodes       ProductCode[]
+  referralInvites Referral[]          @relation("InviterReferrals")
+  referralAccepted Referral[]         @relation("InvitedReferrals")
+}
+
+model Product {
+  id          Int          @id @default(autoincrement())
+  name        String
+  slug        String       @unique
+  description String?
+  priceUsd    Decimal      @db.Decimal(12, 2)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  codes       ProductCode[]
+  orders      Order[]
+}
+
+model ProductCode {
+  id           Int       @id @default(autoincrement())
+  productId    Int
+  codeValue    String    @unique
+  isSold       Boolean   @default(false)
+  soldToUserId Int?
+  soldAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  soldToUser   User?     @relation(fields: [soldToUserId], references: [id])
+  orderItems   OrderItem[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  productId   Int
+  quantity    Int
+  totalPrice  Decimal     @db.Decimal(12, 2)
+  status      String      @default("completed")
+  createdAt   DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id            Int         @id @default(autoincrement())
+  orderId       Int
+  productCodeId Int
+  codeValue     String
+  createdAt     DateTime    @default(now())
+
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productCode   ProductCode @relation(fields: [productCodeId], references: [id])
+}
+
+model Referral {
+  id            Int       @id @default(autoincrement())
+  inviterUserId Int
+  invitedUserId Int       @unique
+  isCounted     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  inviter       User      @relation("InviterReferrals", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  invited       User      @relation("InvitedReferrals", fields: [invitedUserId], references: [id], onDelete: Cascade)
+}
+
+model WalletTransaction {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  type        String
+  amount      Decimal   @db.Decimal(12, 2)
+  reason      String?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
